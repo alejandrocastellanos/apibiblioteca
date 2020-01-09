@@ -132,6 +132,7 @@ class RegisterItbookBook(graphene.Mutation):
 
 #buscar libro en bd y en google
 class SearchBookDbYGoogle(graphene.Mutation):
+    id = graphene.String()
     titulo = graphene.String()
     subtitulo = graphene.String()
     autor = graphene.String()
@@ -148,6 +149,7 @@ class SearchBookDbYGoogle(graphene.Mutation):
         searchlocaldb = db.session.query(Libro).filter(Libro.titulo==search).first()
         
         if searchlocaldb is not None:
+            id = searchlocaldb.id
             titulo = searchlocaldb.titulo
             subtitulo = searchlocaldb.subtitulo
             autor = searchlocaldb.autor
@@ -160,6 +162,7 @@ class SearchBookDbYGoogle(graphene.Mutation):
             urlgooglebooks = "https://www.googleapis.com/books/v1/volumes?q={}".format(search)
             r = requests.get(urlgooglebooks)
             data = r.json()
+            id = data["items"][0]["id"]
             titulo = data["items"][0]["volumeInfo"]["title"]
             subtitulo = data["items"][0]["volumeInfo"]["subtitle"]
             autor = data["items"][0]["volumeInfo"]["authors"][0]
@@ -177,7 +180,7 @@ class SearchBookDbYGoogle(graphene.Mutation):
 
             imagen = data["items"][0]["volumeInfo"]["imageLinks"]["thumbnail"]
 
-        return SearchBookDbYGoogle(titulo=titulo, subtitulo=subtitulo, autor=autor, categoria=categoria, fecha_publicacion=fecha_publicacion, editor=editor, descripcion=descripcion, imagen=imagen)
+        return SearchBookDbYGoogle(id=id, titulo=titulo, subtitulo=subtitulo, autor=autor, categoria=categoria, fecha_publicacion=fecha_publicacion, editor=editor, descripcion=descripcion, imagen=imagen)
 
 
 class MutationCreate(graphene.ObjectType):

@@ -1,0 +1,6 @@
+#export linux, set windows
+POSTGRES_CON='postgresql://postgres:1602@localhost/biblioteca'
+
+#python
+#from app import db
+#db.create_all()

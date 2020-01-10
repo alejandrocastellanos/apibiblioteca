@@ -9,8 +9,7 @@ from services import ServiceGoogle, ServiceItbook, ServiceItbookall, ServiceGoog
 
 password = '1234abcd'
 app = Flask(__name__)
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1602@localhost/biblioteca'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get['DATABASE_URL']
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://zkmwkdoeydfnsx:fc83a8526f265b18e58b35f9e71e5bbdbd82764bebd8b730558c023e6f569130@ec2-174-129-33-2.compute-1.amazonaws.com:5432/dck0t7jn2rfv3g'
 api = Api(app)
 db = SQLAlchemy(app)
 

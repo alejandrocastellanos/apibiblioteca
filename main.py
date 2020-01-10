@@ -102,10 +102,13 @@ class SearchBookDbYGoogle(Resource):
             data_json = request.json
             try:
                 search = data_json["search"] 
-                queryfilter = SearchBook(search)
+
+                queryfilter = Book.query.filter((Book.titulo==search) | (Book.subtitulo==search) | (Book.autor==search) | (Book.categoria==search) | (Book.fecha_publicacion==search) | (Book.editor==search) | (Book.descripcion==search) | (Book.imagen==search)).all()
+
+
                 if len(queryfilter) > 0:
                     resultbooks = []
-                    for x in range(0, len(queryfilter)-1):
+                    for x in range(0, len(queryfilter)):
                         book = {"id":queryfilter[x].id, "titulo":queryfilter[x].titulo, "subtitulo":queryfilter[x].subtitulo, "autor":queryfilter[x].autor, "categoria":queryfilter[x].categoria, "fecha_publicacion":queryfilter[x].fecha_publicacion, "editor":queryfilter[x].editor, "descripcion":queryfilter[x].descripcion, "imagen":queryfilter[x].imagen}
                         resultbooks.append(book)
                     result = {"Resultado": resultbooks}
@@ -130,7 +133,7 @@ class SearchBookDbYItbook(Resource):
                 queryfilter = SearchBook(search)
                 if len(queryfilter) > 0:
                     resultbooks = []
-                    for x in range(0, len(queryfilter)-1):
+                    for x in range(0, len(queryfilter)):
                         book = {"id":queryfilter[x].id, "titulo":queryfilter[x].titulo, "subtitulo":queryfilter[x].subtitulo, "autor":queryfilter[x].autor, "categoria":queryfilter[x].categoria, "fecha_publicacion":queryfilter[x].fecha_publicacion, "editor":queryfilter[x].editor, "descripcion":queryfilter[x].descripcion, "imagen":queryfilter[x].imagen}
                         resultbooks.append(book)
                     result = {"Resultado": resultbooks}
@@ -149,5 +152,5 @@ api.add_resource(DeleteBook, '/eliminar-libro')
 api.add_resource(SearchBookDbYGoogle, '/buscar-libro-db-google')
 api.add_resource(SearchBookDbYItbook, '/buscar-libro-db-itbook')
 
-#if __name__ == '__main__':
-#    app.run(debug=True, host='localhost', port=8080)
+if __name__ == '__main__':
+    app.run(debug=True, host='localhost', port=8080)

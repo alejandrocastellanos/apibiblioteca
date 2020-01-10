@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 from flask import jsonify
@@ -8,7 +9,8 @@ from services import ServiceGoogle, ServiceItbook, ServiceItbookall, ServiceGoog
 
 password = '1234abcd'
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1602@localhost/biblioteca'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1602@localhost/biblioteca'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get['DATABASE_URL']
 api = Api(app)
 db = SQLAlchemy(app)
 

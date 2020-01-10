@@ -148,5 +148,5 @@ api.add_resource(DeleteBook, '/eliminar-libro')
 api.add_resource(SearchBookDbYGoogle, '/buscar-libro-db-google')
 api.add_resource(SearchBookDbYItbook, '/buscar-libro-db-itbook')
 
-if __name__ == '__main__':
-    app.run(debug=True, host='localhost', port=8080)
+#if __name__ == '__main__':
+#    app.run(debug=True, host='localhost', port=8080)

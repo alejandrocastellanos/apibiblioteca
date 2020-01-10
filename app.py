@@ -1,15 +1,17 @@
-from flask import Flask
+import requests
+import json
+from flask import Flask, request
+from flask_restful import Resource, Api
+from flask import jsonify
 from flask_sqlalchemy import SQLAlchemy
-from graphene_sqlalchemy import SQLAlchemyObjectType, SQLAlchemyConnectionField
-from flask_graphql import GraphQLView
-import graphene
-import requests 
+from services import ServiceGoogle, ServiceItbook, ServiceItbookall, ServiceGoogleall
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1602@localhost/biblioteca'
+api = Api(app)
 db = SQLAlchemy(app)
 
-class Libro(db.Model):
+class Book(db.Model):
     __tablename__ = 'libro'
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(500), unique=False, nullable=False)
@@ -20,190 +22,104 @@ class Libro(db.Model):
     editor = db.Column(db.String(100), unique=False, nullable=False)
     descripcion = db.Column(db.String(), unique=False, nullable=False)
     imagen = db.Column(db.String(700), unique=False, nullable=False)
-    #id_servicio = db.Column(db.String(200), unique=False, nullable=True)
     
     def __repr__(self):
         return '<Titulo {}>'.format(self.titulo)
 
-# objeto que lista todos los libros
-class ListAllBooksObject(SQLAlchemyObjectType):
-    class Meta:
-        model = Libro
-        interfaces = (graphene.relay.Node, )
-
-#crear libro en la base de datos
-class CreateBook(graphene.Mutation):
-    class Arguments:
-        titulo = graphene.String(required=True)
-        subtitulo = graphene.String(required=True)
-        autor = graphene.String(required=True)
-        categoria = graphene.String(required=True)
-        fecha_publicacion = graphene.String(required=True)
-        editor = graphene.String(required=True)
-        descripcion = graphene.String(required=True)
-        imagen = graphene.String(required=True)
-    
-    createbook = graphene.Field(lambda: ListAllBooksObject)
-
-    def mutate(self, info, titulo, subtitulo, autor, categoria, fecha_publicacion, editor, descripcion, imagen):
-        createbook = Libro(titulo=titulo, subtitulo=subtitulo, autor=autor, categoria=categoria, fecha_publicacion=fecha_publicacion, editor=editor, descripcion=descripcion, imagen=imagen)
-        db.session.add(createbook)
-        db.session.commit()
-
-        return CreateBook(createbook=createbook)
-
-#elimianr libro por ID
-class DeleteBook(graphene.Mutation):
-    delete = graphene.Boolean()
-    
-    class Arguments:
-        id = graphene.String(required=True)
-    
-    def mutate(cls, info, id):
-        deletebook = db.session.query(Libro).filter(Libro.id==int(id)).first()
-        delete = False
-        if deletebook != None:
-            delete = True
-            
-        db.session.query(Libro).filter(Libro.id==int(id)).delete()
-        db.session.commit()
-        return DeleteBook(delete=delete)
-
+def SearchBook(search):
+    return Book.query.filter((Book.titulo==search) | (Book.subtitulo==search) | (Book.autor==search) | (Book.categoria==search) | (Book.fecha_publicacion==search) | (Book.editor==search) | (Book.descripcion==search) | (Book.imagen==search)).all()
 #crear libro de api google por ID
-class RegisterGoogleBook(graphene.Mutation):
-    class Arguments:
-        id = graphene.String(required=True)   
-    
-    registergooglebook = graphene.Field(lambda: ListAllBooksObject)
-
-    def mutate(self, info, id):
-        urlgooglebooks = "https://www.googleapis.com/books/v1/volumes?q={}".format(id)
-        r = requests.get(urlgooglebooks)
-        data = r.json()
-        titulo = data["items"][0]["volumeInfo"]["title"]
-        subtitulo = data["items"][0]["volumeInfo"]["subtitle"]
-        autor = data["items"][0]["volumeInfo"]["authors"][0]
+class RegisterGoogleBook(Resource):
+    def post(self):
+        data_json = request.json
         try:
-            categoria = data["items"][0]["volumeInfo"]["categories"][0]
-        except:
-            categoria = "Sin categoria"
-
-        fecha_publicacion = data["items"][0]["volumeInfo"]["publishedDate"]        
-        editor = data["items"][0]["volumeInfo"]["publisher"]
-        try:
-            descripcion = data["items"][0]["volumeInfo"]["description"]
-        except:
-            descripcion = "Sin descripción"
-
-        imagen = data["items"][0]["volumeInfo"]["imageLinks"]["thumbnail"]
-
-        registergooglebook = Libro(titulo=titulo, subtitulo=subtitulo, autor=autor, categoria=categoria, fecha_publicacion=fecha_publicacion, editor=editor, descripcion=descripcion, imagen=imagen)
-        db.session.add(registergooglebook)
-        db.session.commit()
-
-        return RegisterGoogleBook(registergooglebook=registergooglebook)
+            id = data_json["id"]
+            servicegoogle = ServiceGoogle(id)
+            registergooglebook = Book(titulo=servicegoogle['titulo'], subtitulo=servicegoogle['subtitulo'], autor=servicegoogle['autor'], categoria=servicegoogle['categoria'], fecha_publicacion=servicegoogle['fecha_publicacion'], editor=servicegoogle['editor'], descripcion=servicegoogle['descripcion'], imagen=servicegoogle['imagen'])
+            db.session.add(registergooglebook)
+            db.session.commit()    
+            result = {"Resultado":"Creado Correctamente", "id":registergooglebook.id}         
+        except Exception as e:
+            result = {"Resultado":"Datos incorrectos", "Descripcion":str(e)}
+        return result
 
 #crear libro de api libros de programacion por ID
-class RegisterItbookBook(graphene.Mutation):
-    class Arguments:
-        id = graphene.String(required=True)   
-    
-    registeritbookbook = graphene.Field(lambda: ListAllBooksObject)
+class RegisterItbookBook(Resource):
+    def post(self):
+        data_json = request.json
+        try:
+            id = data_json["id"]
+            serviceitbook = ServiceItbook(id)
+            registeritbookbook = Book(titulo=serviceitbook['titulo'], subtitulo=serviceitbook['subtitulo'], autor=serviceitbook['autor'], categoria=serviceitbook['categoria'], fecha_publicacion=serviceitbook['fecha_publicacion'], editor=serviceitbook['editor'], descripcion=serviceitbook['descripcion'], imagen=serviceitbook['imagen'])
+            db.session.add(registeritbookbook)
+            db.session.commit()
 
-    def mutate(self, info, id):
-        registeritbookbook = "https://api.itbook.store/1.0/books/{}".format(id)
-        r = requests.get(registeritbookbook)
-        data = r.json()
+            result = {"Resultado":"Creado Correctamente", "Id":registeritbookbook.id}
+        except Exception as e:
+            result = {"Resultado":"Datos incorrectos", "Descripcion":str(e)}
+        return result
 
-        titulo = data['title']
-        subtitulo = data['subtitle']
-        autor = data['authors']
-        categoria = "Tecnología"
-        fecha_publicacion = data["year"]
-        editor = data["publisher"]
-        descripcion = data["publisher"]
-        imagen = data["image"]
+#eliminar libro
+class DeleteBook(Resource):
+    def delete(delf):
+        data_json = request.json
+        try:
+            id = data_json["id"]
+            deletebook = db.session.query(Book).filter(Book.id==int(id)).first()
+            result = {"Resultado":"El id no existe"}
+            if deletebook != None:
+                db.session.query(Book).filter(Book.id==int(id)).delete()
+                db.session.commit()
+                result = {"Resultado":"Eliminado Correctamente"}
+        except Exception as e:
+            result = {"Resultado":"Datos incorrectos", "Descripcion":str(e)}
+        return result
 
-        registeritbookbook = Libro(titulo=titulo, subtitulo=subtitulo, autor=autor, categoria=categoria, fecha_publicacion=fecha_publicacion, editor=editor, descripcion=descripcion, imagen=imagen)
-        db.session.add(registeritbookbook)
-        db.session.commit()
+#buscar libro en db y en google books
+class SearchBookDbYGoogle(Resource):
+    def post(delf):
+        data_json = request.json
+        try:
+            search = data_json["search"] 
+            queryfilter = SearchBook(search)
+            if len(queryfilter) > 0:
+                resultbooks = []
+                for x in range(0, len(queryfilter)-1):
+                    book = {"id":queryfilter[x].id, "titulo":queryfilter[x].titulo, "subtitulo":queryfilter[x].subtitulo, "autor":queryfilter[x].autor, "categoria":queryfilter[x].categoria, "fecha_publicacion":queryfilter[x].fecha_publicacion, "editor":queryfilter[x].editor, "descripcion":queryfilter[x].descripcion, "imagen":queryfilter[x].imagen}
+                    resultbooks.append(book)
+                result = {"Resultado": resultbooks}
+            else:
+                searchGoogleBooks = ServiceGoogleall(search)
+                result = {"Resultado": searchGoogleBooks}
+        except Exception as e:
+            result = {"Resultado":"Error", "Descripcion":str(e)}
+        return result
 
-        return RegisterItbookBook(registeritbookbook=registeritbookbook)
+#buscar libro en db y en itbooks
+class SearchBookDbYItbook(Resource):
+    def post(delf):
+        data_json = request.json
+        try:
+            search = data_json["search"] 
+            queryfilter = SearchBook(search)
+            if len(queryfilter) > 0:
+                resultbooks = []
+                for x in range(0, len(queryfilter)-1):
+                    book = {"id":queryfilter[x].id, "titulo":queryfilter[x].titulo, "subtitulo":queryfilter[x].subtitulo, "autor":queryfilter[x].autor, "categoria":queryfilter[x].categoria, "fecha_publicacion":queryfilter[x].fecha_publicacion, "editor":queryfilter[x].editor, "descripcion":queryfilter[x].descripcion, "imagen":queryfilter[x].imagen}
+                    resultbooks.append(book)
+                result = {"Resultado": resultbooks}
+            else:
+                searchItBooks = ServiceItbookall(search)
+                result = {"Resultado": searchItBooks}
+        except Exception as e:
+            result = {"Resultado":"Error", "Descripcion":str(e)}
+        return result
 
-#buscar libro en bd y en google
-class SearchBookDbYGoogle(graphene.Mutation):
-    id = graphene.String()
-    titulo = graphene.String()
-    subtitulo = graphene.String()
-    autor = graphene.String()
-    categoria = graphene.String()
-    fecha_publicacion = graphene.String()
-    editor = graphene.String()
-    descripcion = graphene.String()
-    imagen = graphene.String()
-
-    class Arguments:
-        search = graphene.String(required=True)
-    
-    def mutate(cls, info, search):
-        searchlocaldb = db.session.query(Libro).filter(Libro.titulo==search).first()
-        
-        if searchlocaldb is not None:
-            id = searchlocaldb.id
-            titulo = searchlocaldb.titulo
-            subtitulo = searchlocaldb.subtitulo
-            autor = searchlocaldb.autor
-            categoria = searchlocaldb.categoria
-            fecha_publicacion = searchlocaldb.fecha_publicacion
-            editor = searchlocaldb.editor
-            descripcion = searchlocaldb.descripcion
-            imagen = searchlocaldb.imagen
-        else:
-            urlgooglebooks = "https://www.googleapis.com/books/v1/volumes?q={}".format(search)
-            r = requests.get(urlgooglebooks)
-            data = r.json()
-            id = data["items"][0]["id"]
-            titulo = data["items"][0]["volumeInfo"]["title"]
-            subtitulo = data["items"][0]["volumeInfo"]["subtitle"]
-            autor = data["items"][0]["volumeInfo"]["authors"][0]
-            try:
-                categoria = data["items"][0]["volumeInfo"]["categories"][0]
-            except:
-                categoria = "Sin categoria"
-
-            fecha_publicacion = data["items"][0]["volumeInfo"]["publishedDate"]        
-            editor = data["items"][0]["volumeInfo"]["publisher"]
-            try:
-                descripcion = data["items"][0]["volumeInfo"]["description"]
-            except:
-                descripcion = "Sin descripción"
-
-            imagen = data["items"][0]["volumeInfo"]["imageLinks"]["thumbnail"]
-
-        return SearchBookDbYGoogle(id=id, titulo=titulo, subtitulo=subtitulo, autor=autor, categoria=categoria, fecha_publicacion=fecha_publicacion, editor=editor, descripcion=descripcion, imagen=imagen)
-
-
-class MutationCreate(graphene.ObjectType):
-    create_book = CreateBook.Field()
-    delete_book = DeleteBook.Field()
-    register_google_book = RegisterGoogleBook.Field()
-    register_itbook_book = RegisterItbookBook.Field()
-    searchbookdbygoogle = SearchBookDbYGoogle.Field()
-
-class Query(graphene.ObjectType):
-    #listar todos los libros
-    all_posts = SQLAlchemyConnectionField(ListAllBooksObject)    
-
-schema = graphene.Schema(query=Query, mutation=MutationCreate)
-
-app.add_url_rule(
-    '/libro',
-    view_func=GraphQLView.as_view(
-        'libro',
-        schema=schema,
-        graphiql=True # for having the GraphiQL interface
-    )
-)
+api.add_resource(RegisterGoogleBook, '/registrar-google-libro')   
+api.add_resource(RegisterItbookBook, '/registrar-itbook-libro')
+api.add_resource(DeleteBook, '/eliminar-libro')
+api.add_resource(SearchBookDbYGoogle, '/buscar-libro-db-google')
+api.add_resource(SearchBookDbYItbook, '/buscar-libro-db-itbook')
 
 if __name__ == '__main__':
-     app.run()
+    app.run(debug=True, host='localhost', port=8080)

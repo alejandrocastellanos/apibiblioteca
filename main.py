@@ -103,7 +103,7 @@ class SearchBookDbYGoogle(Resource):
             try:
                 search = data_json["search"] 
 
-                queryfilter = Book.query.filter((Book.titulo==search) | (Book.subtitulo==search) | (Book.autor==search) | (Book.categoria==search) | (Book.fecha_publicacion==search) | (Book.editor==search) | (Book.descripcion==search) | (Book.imagen==search)).all()
+                queryfilter = Book.query.filter((Book.titulo.like==search) | (Book.subtitulo.like==search) | (Book.autor.like==search) | (Book.categoria.like==search) | (Book.fecha_publicacion.like==search) | (Book.editor.like==search) | (Book.descripcion.like==search) | (Book.imagen.like==search)).all()
 
 
                 if len(queryfilter) > 0:
@@ -152,5 +152,5 @@ api.add_resource(DeleteBook, '/eliminar-libro')
 api.add_resource(SearchBookDbYGoogle, '/buscar-libro-db-google')
 api.add_resource(SearchBookDbYItbook, '/buscar-libro-db-itbook')
 
-if __name__ == '__main__':
-    app.run(debug=True, host='localhost', port=8080)
+#if __name__ == '__main__':
+#    app.run(debug=True, host='localhost', port=8080)

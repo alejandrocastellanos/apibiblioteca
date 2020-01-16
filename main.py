@@ -29,7 +29,7 @@ class Book(db.Model):
         return '<Titulo {}>'.format(self.titulo)
 
 def SearchBook(search):
-    return Book.query.filter((Book.titulo==search) | (Book.subtitulo==search) | (Book.autor==search) | (Book.categoria==search) | (Book.fecha_publicacion==search) | (Book.editor==search) | (Book.descripcion==search) | (Book.imagen==search)).all()
+    return Book.query.filter((Book.titulo.match("%"+search+"%")) | (Book.subtitulo.match("%"+search+"%")) | (Book.autor.match("%"+search+"%")) | (Book.categoria.match("%"+search+"%")) | (Book.fecha_publicacion.match("%"+search+"%")) | (Book.editor.match("%"+search+"%")) | (Book.descripcion.match("%"+search+"%")) | (Book.imagen.match("%"+search+"%"))).all()
 
 #crear libro de api google por ID
 class RegisterGoogleBook(Resource):
@@ -103,8 +103,7 @@ class SearchBookDbYGoogle(Resource):
             try:
                 search = data_json["search"] 
 
-                queryfilter = Book.query.filter((Book.titulo.like==search) | (Book.subtitulo.like==search) | (Book.autor.like==search) | (Book.categoria.like==search) | (Book.fecha_publicacion.like==search) | (Book.editor.like==search) | (Book.descripcion.like==search) | (Book.imagen.like==search)).all()
-
+                queryfilter = SearchBook(search)
 
                 if len(queryfilter) > 0:
                     resultbooks = []
@@ -131,6 +130,7 @@ class SearchBookDbYItbook(Resource):
             try:
                 search = data_json["search"] 
                 queryfilter = SearchBook(search)
+                print(queryfilter)
                 if len(queryfilter) > 0:
                     resultbooks = []
                     for x in range(0, len(queryfilter)):
